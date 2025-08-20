@@ -9,7 +9,9 @@ def run_triposr(image_path,
                 model_save_format="obj",
                 bake_texture_flag=False,
                 texture_resolution=2048,
-                render_flag=False):
+                render_flag=False,
+                input_filename=None,
+                output_filename=None):
     os.makedirs(output_dir, exist_ok=True)
     if not torch.cuda.is_available():
         device = "cpu"
@@ -41,9 +43,9 @@ def run_triposr(image_path,
         image = np.array(image).astype(np.float32) / 255.0
         image = image[:, :, :3] * image[:, :, 3:4] + (1 - image[:, :, 3:4]) * 0.5
         image = Image.fromarray((image * 255.0).astype(np.uint8))
-        if not os.path.exists(os.path.join(output_dir, str(i))):
-            os.makedirs(os.path.join(output_dir, str(i)))
-        image.save(os.path.join(output_dir, str(i), f"input.png"))
+        # Save with random or provided filename
+        save_name = input_filename if input_filename else f"input.png"
+        image.save(os.path.join(output_dir, save_name))
     images.append(image)
     timer.end("Processing images")
 
@@ -58,9 +60,9 @@ def run_triposr(image_path,
             timer.start("Rendering")
             render_images = model.render(scene_codes, n_views=30, return_type="pil")
             for ri, render_image in enumerate(render_images[0]):
-                render_image.save(os.path.join(output_dir, str(i), f"render_{ri:03d}.png"))
+                render_image.save(os.path.join(output_dir, f"render_{ri:03d}.png"))
             save_video(
-                render_images[0], os.path.join(output_dir, str(i), f"render.mp4"), fps=30
+                render_images[0], os.path.join(output_dir, f"render.mp4"), fps=30
             )
             timer.end("Rendering")
 
@@ -68,9 +70,9 @@ def run_triposr(image_path,
         meshes = model.extract_mesh(scene_codes, not bake_texture_flag, resolution=mc_resolution)
         timer.end("Extracting mesh")
 
-        out_mesh_path = os.path.join(output_dir, str(i), f"mesh.{model_save_format}")
+        out_mesh_path = os.path.join(output_dir, output_filename if output_filename else f"mesh.{model_save_format}")
         if bake_texture_flag:
-            out_texture_path = os.path.join(output_dir, str(i), "texture.png")
+            out_texture_path = os.path.join(output_dir, f"texture.png")
             timer.start("Baking texture")
             bake_output = bake_texture(meshes[0], model, scene_codes[0], texture_resolution)
             timer.end("Baking texture")
@@ -82,7 +84,7 @@ def run_triposr(image_path,
             timer.start("Exporting mesh")
             meshes[0].export(out_mesh_path)
             timer.end("Exporting mesh")
-    return os.path.join(output_dir, "0", f"mesh.{model_save_format}")
+    return out_mesh_path
 import argparse
 import logging
 import os
