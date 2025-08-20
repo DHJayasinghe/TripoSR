@@ -1,3 +1,5 @@
+pymcubes
+flask
 omegaconf==2.3.0
 Pillow==10.1.0
 einops==0.7.0
@@ -7,6 +9,7 @@ trimesh==4.0.5
 rembg
 huggingface-hub
 imageio[ffmpeg]
-gradio
+gradio==2.5.0
 xatlas==0.0.9
 moderngl==5.10.0
+onnxruntime
